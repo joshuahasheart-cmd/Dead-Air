@@ -1,1 +1,3 @@
 # Dead-Air
+About the Game
+Clock in as a fresh-faced rookie in Dead Air, a complex heating and air learning simulator disguised as a classic green-phosphor terminal RPG. Taking calls from dispatch, you'll have to troubleshoot broken systems, pull the right parts from your van, and actually execute the repairs to get customers cooling again. Whether you're studying the HVAC trade, sharpening your diagnostic instincts, or just love retro text adventures, every service call challenges you to think like a real field tech—or get burned by a bad diagnosis.
