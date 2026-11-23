@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>DEAD AIR // P31 Field Terminal</title>
+
+  <style>
+    :root {
+      --bg: #050a05;
+      --panel: #0a140a;
+      --border: #1f8a0c;
+      --green: #39ff14;
+      --amber: #ffb000;
+      --cyan: #00e5ff;
+      --danger: #ff3b30;
+      --dim: #195e0d;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      width: 100vw;
+      height: 100dvh;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--green);
+      font-family: "Courier New", Courier, monospace;
+      font-size: 11px;
+      line-height: 1.2;
+      user-select: none;
+    }
+    #terminal-shell {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100dvh;
+      padding: 4px;
+      gap: 3px;
+    }
+    .hud-header {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      padding: 3px 5px;
+      flex-shrink: 0;
+    }
+    .hud-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      font-size: 10.5px;
+      border-bottom: 1px dashed var(--dim);
+      padding-bottom: 2px;
+      margin-bottom: 2px;
+    }
+    .hud-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px 4px;
+      font-size: 10px;
+    }
+    .hud-effects {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow: hidden;
+      gap: 4px;
+      margin-top: 2px;
+      font-size: 9.5px;
+    }
+    .buff-tag {
+      background: #0d2b0d;
+      border: 1px solid var(--green);
+      padding: 0 3px;
+      white-space: nowrap;
+    }
+    .debuff-tag {
+      background: #2b0d0d;
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      padding: 0 3px;
+      white-space: nowrap;
+    }
+    .nav-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+    .nav-tab, .util-btn {
+      background: #0c1a0c;
+      color: var(--green);
+      border: 1px solid var(--border);
+      padding: 3px 4px;
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .nav-tab.active { background: var(--green); color: #000; }
+    .util-group { display: flex; gap: 2px; }
+    .util-btn { color: var(--amber); border-color: var(--amber); padding: 3px 5px; }
+    .panel {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      padding: 4px;
+      gap: 3px;
+    }
+    .panel.active { display: flex; }
+    .phase-strip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0e220e;
+      border: 1px solid var(--dim);
+      padding: 2px 5px;
+      font-size: 10px;
+      font-weight: bold;
+      color: var(--amber);
+      flex-shrink: 0;
+    }
+    .clipboard-row { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+    details.trade-drop {
+      border: 1px solid var(--dim);
+      background: #071007;
+      padding: 2px 5px;
+      font-size: 10px;
+    }
+    details.trade-drop summary {
+      cursor: pointer;
+      font-weight: bold;
+      color: var(--cyan);
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+    }
+    details.trade-drop summary::-webkit-details-marker { display: none; }
+    .drop-body {
+      margin-top: 3px;
+      padding-top: 3px;
+      border-top: 1px dashed var(--dim);
+      color: #c8f7c5;
+      font-size: 9.8px;
+      line-height: 1.25;
+      max-height: 68px;
+      overflow: hidden;
+    }
+    .comms-box {
+      border: 1px solid var(--border);
+      background: #040804;
+      padding: 4px 6px;
+      flex: 0 0 auto;
+      min-height: 66px;
+      max-height: 92px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .comms-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9.5px;
+      color: var(--amber);
+      border-bottom: 1px dashed var(--dim);
+      padding-bottom: 1px;
+    }
+    #dialogue-box { font-size: 10.5px; line-height: 1.22; white-space: pre-wrap; overflow: hidden; }
+    #action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1;
+      min-height: 0;
+      justify-content: flex-start;
+      overflow: hidden;
+    }
+    .term-btn {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      background: #0c1d0c;
+      color: var(--green);
+      border: 1px solid var(--border);
+      padding: 4px 6px;
+      font-family: inherit;
+      font-size: 10.2px;
+      font-weight: bold;
+      text-align: left;
+      cursor: pointer;
+      flex-shrink: 1;
+    }
+    .term-btn:active { background: var(--green); color: #000; }
+    .term-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .term-btn.amber-btn { border-color: var(--amber); color: var(--amber); }
+    .term-btn.cyan-btn { border-color: var(--cyan); color: var(--cyan); }
+    .term-btn.danger-btn { border-color: var(--danger); color: var(--danger); }
+    #action-buttons.dark-blind .term-btn {
+      background: #040704;
+      color: #153812;
+      border-color: #10290e;
+      text-shadow: 0 0 3px #153812;
+      letter-spacing: -0.3px;
+    }
+    #action-buttons.dark-blind .term-btn.lamp-rescue {
+      background: #141104;
+      color: #8c6608;
+      border-color: #594105;
+    }
+    #success-banner {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      border: 2px solid var(--green);
+      background: #061406;
+      padding: 6px;
+      flex-shrink: 0;
+    }
+    #success-banner.show { display: flex; }
+    .split-col { display: flex; flex-direction: column; gap: 4px; flex: 1; min-height: 0; overflow: hidden; }
+    .sub-box { border: 1px solid var(--dim); padding: 3px 5px; display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+    .slot-row, .inv-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      padding: 1px 3px;
+      border-bottom: 1px dotted #14420c;
+    }
+    .slot-remove { color: var(--danger); font-weight: bold; cursor: pointer; padding: 0 4px; }
+    .mini-btn { background: #0f290f; color: var(--amber); border: 1px solid var(--amber); font-family: inherit; font-size: 9.5px; padding: 1px 4px; cursor: pointer; }
+    #field-log { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 2px; font-size: 9.8px; }
+    .log-entry { border-bottom: 1px dotted #14420c; padding-bottom: 1px; }
+    .log-entry.good { color: var(--green); }
+    .log-entry.warn { color: var(--amber); }
+    .log-entry.bad { color: var(--danger); }
+    .log-entry.info { color: var(--cyan); }
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.88); z-index: 50; padding: 8px; align-items: center; justify-content: center; }
+    .modal-backdrop.open { display: flex; }
+    .modal-card { width: 100%; max-width: 440px; max-height: 92dvh; overflow: hidden; border: 2px solid var(--amber); background: var(--panel); padding: 6px; display: flex; flex-direction: column; gap: 5px; font-size: 10.5px; }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--amber); padding-bottom: 3px; color: var(--amber); font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; font-size: 10px; text-align: center; }
+    th, td { border: 1px solid var(--dim); padding: 2px; }
+    .gauge-dial-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; text-align: center; }
+    .gauge-dial { border: 1px solid var(--cyan); padding: 5px; }
+    .gauge-dial.high-side { border-color: var(--danger); }
+    .gauge-psi { font-size: 15px; font-weight: bold; margin: 2px 0; }
+    /* LAYOUT BALANCE PATCH */
+    #terminal-shell { padding: 6px; gap: 5px; }
+    .hud-header { padding: 5px 7px; }
+    .hud-top-row { font-size: 11px; margin-bottom: 3px; }
+    .hud-stats-grid { font-size: 10.5px; gap: 3px 6px; }
+    .panel { padding: 6px; gap: 5px; }
+    .comms-box {
+      flex: 1 1 38%;
+      min-height: 95px;
+      max-height: none;
+      padding: 6px 8px;
+    }
+    #dialogue-box { font-size: 11px; line-height: 1.3; }
+    #action-buttons {
+      flex: 1 1 auto;
+      justify-content: space-evenly;
+      gap: 5px;
+    }
+    .term-btn { padding: 7px 8px; font-size: 10.8px; }
+    /* TEXT READABILITY PATCH */
+    html, body { font-size: 12.5px; }
+    .hud-top-row { font-size: 12px; }
+    .hud-stats-grid { font-size: 11px; }
+    .hud-effects { font-size: 10.5px; }
+    .nav-tab, .util-btn { font-size: 11px; padding: 4px 5px; }
+    .phase-strip, details.trade-drop { font-size: 11px; }
+    .drop-body { font-size: 10.8px; max-height: 82px; }
+    .comms-header { font-size: 10.5px; }
+    #dialogue-box { font-size: 12px; line-height: 1.32; }
+    .term-btn { font-size: 11.5px; padding: 6px 8px; }
+    .slot-row, .inv-item, #field-log { font-size: 11px; }
+
+  </style>
+</head>
+<body>
+  <div id="terminal-shell">
+    <div class="hud-header">
+      <div class="hud-top-row">
+        <span>DEAD AIR // P31</span>
+        <span id="company-subtitle">ARCTIC BLASTERS HVAC LLC • DAY 1</span>
+      </div>
+      <div class="hud-stats-grid">
+        <span id="hud-rank">RANK: ROOKIE TECH (0/55)</span>
+        <span id="hud-cash">CASH: $65</span>
+        <span id="hud-stam">STAM: 100%</span>
+        <span id="hud-clock">05:45 AM</span>
+        <span id="hud-zaps">ZAPS: 0/3</span>
+        <span id="hud-wu">WU: 0/2</span>
+        <span id="hud-belt">BELT: 0/6</span>
+        <span id="hud-zone" style="color:var(--cyan);">ZONE: HQ</span>
+      </div>
+      <div class="hud-effects" id="active-effects-bar"></div>
+    </div>
+
+    <div class="nav-bar">
+      <button class="nav-tab active" onclick="switchTab('panel-job', this)">JOB &amp; COMMS</button>
+      <button class="nav-tab" onclick="switchTab('panel-van', this)">VAN &amp; BELT</button>
+      <button class="nav-tab" onclick="switchTab('panel-log', this)">FIELD LOG</button>
+      <div class="util-group">
+        <button class="util-btn" onclick="openModal('modal-pt')">PT</button>
+        <button class="util-btn" onclick="openModal('modal-guide')">SOP</button>
+        <button class="util-btn" onclick="openModal('modal-lore')">HACK</button>
+        <button class="util-btn" onclick="openModal('modal-pay')">PAY</button>
+      </div>
+    </div>
+
+    <div id="panel-job" class="panel active">
+      <div class="phase-strip">
+        <span id="phase-label">DISPATCH DESK // MARGE</span>
+        <span id="weather-label">78°F CLEAR</span>
+      </div>
+
+      <div class="clipboard-row" id="work-order-card">
+        <details class="trade-drop" id="wo-dropdown">
+          <summary>
+            <span id="wo-id">[+] WORK ORDER #001 • TIER: ROOKIE TECH</span>
+            <span style="color:var(--amber);">[TAP SPEC]</span>
+          </summary>
+          <div class="drop-body">
+            <div><strong>CUST:</strong> <span id="wo-cust">--</span> | <strong>SYS:</strong> <span id="wo-sys">--</span></div>
+            <div><strong>ISSUE:</strong> <span id="wo-complaint">--</span></div>
+            <div style="color:var(--amber);"><strong>MARGE NOTE:</strong> <span id="wo-notes">--</span></div>
+          </div>
+        </details>
+
+        <details class="trade-drop" id="readings-dropdown">
+          <summary>
+            <span>[+] FIELD METER &amp; GAUGE CLIPBOARD</span>
+            <span id="readings-count" style="color:var(--green);">[0 LOGGED]</span>
+          </summary>
+          <div class="drop-body" id="collected-readings-body">
+            No field measurements recorded on this ticket yet.
+          </div>
+        </details>
+      </div>
+
+      <div id="success-banner">
+        <div id="success-title" style="font-weight:bold; color:var(--green);">SUCCESS! TICKET CLOSED</div>
+        <div id="success-summary" style="font-size:10px;">System verified within spec.</div>
+        <button class="term-btn amber-btn" onclick="nextAfterSuccess()"><span>NEXT CALL &gt;&gt;</span><span>[DISPATCH]</span></button>
+      </div>
+
+      <div class="comms-box">
+        <div class="comms-header">
+          <span id="speaker-name">MARGE (DISPATCH)</span>
+          <span id="location-tag">HQ // BAY 1</span>
+        </div>
+        <div id="dialogue-box"></div>
+      </div>
+
+      <div id="action-buttons"></div>
+    </div>
+
+    <div id="panel-van" class="panel">
+      <div class="phase-strip">
+        <span>CARRY BELT: <span id="belt-capacity-text">0 / 6 SLOTS</span></span>
+        <span id="van-location-status">ACCESSIBLE</span>
+      </div>
+      <div class="split-col">
+        <div class="sub-box" style="flex: 0 0 auto;">
+          <div style="color:var(--amber); font-weight:bold; font-size:10px;">ON YOUR BELT (MAX 5 + TOBY SLOT)</div>
+          <div id="belt-slots-list"></div>
+        </div>
+        <div class="sub-box" style="flex: 1;">
+          <div style="color:var(--cyan); font-weight:bold; font-size:10px;">VAN RACK INVENTORY (TAP +BELT WHEN AT VAN)</div>
+          <div id="van-inventory-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-log" class="panel">
+      <div class="phase-strip">
+        <span>P31-RX DIAGNOSTIC &amp; RADIO LOG</span>
+        <span>LIVE FEED</span>
+      </div>
+      <div id="field-log"></div>
+    </div>
+  </div>
+
+  <div id="modal-pt" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-head"><span>POCKET PT CHART (°F)</span><button class="mini-btn" onclick="closeModal('modal-pt')">[X]</button></div>
+      <div style="font-size:9.5px; color:var(--cyan);">SH = Suction Temp - Evap Sat (10–14°F) | SC = Cond Sat - Liquid Temp (10–12°F)</div>
+      <table>
+        <tr><th>SAT °F</th><th>R-22 PSIG</th><th>R-410A PSIG</th></tr>
+        <tr><td>30°F</td><td>55</td><td>97</td></tr>
+        <tr><td>40°F</td><td>69</td><td>118</td></tr>
+        <tr><td>50°F</td><td>84</td><td>143</td></tr>
+        <tr><td>95°F</td><td>182</td><td>296</td></tr>
+        <tr><td>105°F</td><td>211</td><td>341</td></tr>
+        <tr><td>115°F</td><td>243</td><td>390</td></tr>
+        <tr><td>125°F</td><td>278</td><td>445</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div id="modal-guide" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-head"><span>ORDER OF OPERATIONS (SOP)</span><button class="mini-btn" onclick="closeModal('modal-guide')">[X]</button></div>
+      <div><strong>1. T-STAT &amp; INDOOR FIRST:</strong> Check COOL/HEAT, FAN AUTO, Dumbacell AAs, filter &amp; coil BEFORE gauges.</div>
+      <div><strong>2. DARK ATTICS / BASEMENTS:</strong> Toggle your Dumbacell Headlamp ON before inspecting dark spaces or you'll bump your head!</div>
+      <div><strong>3. LOTO SAFETY:</strong> Pull outdoor disconnect &amp; verify 0V before touching caps/contactors—plug back in before leaving!</div>
+      <div><strong>4. EPA 608:</strong> Never vent refrigerant to air. Instant termination.</div>
+    </div>
+  </div>
+
+  <div id="modal-tool" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-head"><span id="tool-modal-title">MANIFOLD GAUGES</span><button class="mini-btn" onclick="closeModal('modal-tool')">[X]</button></div>
+      <div id="tool-modal-body"></div>
+    </div>
+  </div>
+
+  <div id="modal-lore" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-head"><span>HACK-TECH BESTIARY</span><button class="mini-btn" onclick="closeModal('modal-lore')">[X]</button></div>
+      <div id="bestiary-list">No violations logged yet.</div>
+    </div>
+  </div>
+
+  <div id="modal-pay" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-head"><span>PAYDAY LEDGER</span><button class="mini-btn" onclick="closeModal('modal-pay')">[X]</button></div>
+      <div id="ledger-body"></div>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(panelId, btn) {
+      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+      document.querySelectorAll(".nav-tab").forEach(b => b.classList.remove("active"));
+      document.getElementById(panelId).classList.add("active");
+      btn.classList.add("active");
+    }
+    function openModal(id) { document.getElementById(id).classList.add("open"); }
+    function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+  </script>
+  <script src="cases.js"></script>
+  <script src="engine.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // 1. Rebrand Terminal to DEAD AIR // TXV-PRO
+    document.title = "DEAD AIR // TXV-PRO Field Terminal";
+    document.querySelector(".hud-top-row span").textContent = "DEAD AIR // TXV-PRO";
+    document.querySelector("#panel-log .phase-strip span").textContent = "TXV-PRO DIAGNOSTIC & RADIO LOG";
+
+    // 2. Add Filter Drier & Micron Rig to Game Data & Van
+    window.GAME_DATA.toolsAndParts.filter_drier = {
+      id: "filter_drier", name: "Oversized Liquid Filter Drier", type: "part", price: 28,
+      desc: "Traps moisture & acid after triple-evac."
+    };
+    window.STATE.vanStock.filter_drier = 2;
+
+    // 3. Inject Moisture / Hack-Supervisor Case into Cases
+    window.GAME_DATA.cases.splice(22, 0, {
+      id: 36,
+      tier: "JOURNEYMAN",
+      customer: "Ray 'Two-TXVs' Kowalski",
+      archetype: "Frustrated Repeat Customer",
+      system: "4-Ton TXV Split AC (R-410A)",
+      indoorLoc: "Hallway Air Handler Closet (Lit)",
+      darkIndoor: false,
+      complaint: "Your old supervisor swapped my TXV twice and it STILL freezes up after 20 minutes!",
+      margeNote: "Classic hack move: he skipped the vacuum pump! Recover wet gas, swap filter drier, triple-evac <500 microns & recharge!",
+      doorGreeting: "I paid $1,400 for two TXVs and it still hunts and freezes—please tell me you actually brought a vacuum pump!",
+      hazard: null,
+      faultType: "moisture_in_system",
+      requiredTools: ["gauges_analog", "driver_11"],
+      requiredPart: "filter_drier",
+      extraPart: "r410a_jug",
+      readings: { suctionPsi: 74, headPsi: 355, suctionTemp: 61, liquidTemp: 89, deltaT: 7, coil: "Suction needle hunting wildly; 6°F temp drop across filter drier" },
+      diagnosisHint: "Moisture freezing at the TXV orifice from a skipped vacuum! Recovered wet gas, installed new filter drier, triple-evacuated <500 microns & weighed in virgin Rose-410A!",
+      reward: 275,
+      tip: 35,
+      hackLore: "Supervisor Hack Entry: Replaced two good TXVs without a micron gauge or nitrogen sweep—moisture kept freezing the orifice."
+    });
+
+    // 4. Hook Triple-Evac Repair Button into Repair Menu
+    const origRenderRepairMenu = window.renderRepairMenu;
+    window.renderRepairMenu = function() {
+      origRenderRepairMenu();
+      const c = window.STATE.currentCase;
+      if (!c || c.faultType !== "moisture_in_system") return;
+      const box = document.getElementById("action-buttons");
+      const btn = document.createElement("button");
+      btn.className = "term-btn cyan-btn";
+      btn.innerHTML = "<span>RECOVER, SWAP DRIER &amp; TRIPLE-EVAC (&lt;500μ)</span><span>[MOISTURE]</span>";
+      btn.onclick = () => {
+        if (!consumeBeltOrVanPart("filter_drier") || !consumeBeltOrVanPart("r410a_jug")) {
+          addLog("Need Oversized Filter Drier AND Rose-410A Jug on belt!", "bad");
+          return;
+        }
+        STATE.minutes += 25;
+        STATE.jobFlags.repaired = true;
+        addLog("Recovered wet charge, brazed new filter drier, triple-evacuated to 320 microns & weighed in virgin Rose-410A!", "good");
+        window.renderRepairMenu();
+      };
+      box.insertBefore(btn, box.children[box.children.length - 2]);
+    };
+  });
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // 1. Add Cold Water Bottle to Tools/Parts & Van Stock
+    window.GAME_DATA.toolsAndParts.water_bottle = {
+      id: "water_bottle", name: "Cold Water Bottle", type: "part", price: 3,
+      desc: "Hydrates (+15% STAM) or cools hot compressor domes."
+    };
+    window.STATE.vanStock.water_bottle = 4;
+
+    // 2. Drink Water Bottle at Van for Clean Stamina (+15%)
+    const prevVanPrep = window.enterVanPrepPhase;
+    window.enterVanPrepPhase = function() {
+      prevVanPrep();
+      if ((window.STATE.vanStock.water_bottle || 0) > 0 && window.STATE.stamina < 100) {
+        const box = document.getElementById("action-buttons");
+        const btn = document.createElement("button");
+        btn.className = "term-btn cyan-btn";
+        btn.innerHTML = `<span>DRINK COLD WATER BOTTLE (+15% STAM, NO JITTERS)</span><span>[${window.STATE.vanStock.water_bottle} LEFT]</span>`;
+        btn.onclick = () => {
+          window.STATE.vanStock.water_bottle--;
+          window.STATE.stamina = Math.min(100, window.STATE.stamina + 15);
+          addLog("Drank a cold water bottle from the cooler (+15% STAM).", "good");
+          window.enterVanPrepPhase();
+        };
+        box.appendChild(btn);
+      }
+    };
+
+    // 3. Restock Water Bottles During Lunch / Supply Run
+    const prevLunch = window.enterLunchAndSupplyPhase;
+    window.enterLunchAndSupplyPhase = function() {
+      prevLunch();
+      const box = document.getElementById("action-buttons");
+      const btn = document.createElement("button");
+      btn.className = "term-btn";
+      btn.disabled = window.STATE.cash < 6;
+      btn.innerHTML = "<span>GRAB 4-PACK COLD WATER FOR COOLER</span><span>[$6]</span>";
+      btn.onclick = () => {
+        window.STATE.cash -= 6;
+        window.STATE.vanStock.water_bottle = (window.STATE.vanStock.water_bottle || 0) + 4;
+        addLog("Loaded 4 cold water bottles into the van cooler.", "good");
+        updateHUD();
+      };
+      box.insertBefore(btn, box.lastElementChild);
+    };
+
+    // 4. Require LOTO + Water Bottle + 25 Mins on Thermal Overload Case
+    const prevRepairWater = window.renderRepairMenu;
+    window.renderRepairMenu = function() {
+      prevRepairWater();
+      const c = window.STATE.currentCase;
+      if (!c || c.faultType !== "thermal_overload_ol") return;
+      const box = document.getElementById("action-buttons");
+      Array.from(box.querySelectorAll("button")).forEach(b => {
+        if (b.textContent.includes("COOL COMPRESSOR DOME")) {
+          b.innerHTML = "<span>POUR WATER BOTTLE ON DOME &amp; WAIT TO COOL</span><span>[+25M • H2O]</span>";
+          b.onclick = () => {
+            if (!STATE.jobFlags.disconnectPulled) {
+              triggerStrikeOrWriteUp("ZAP", "Poured water over a live 240V compressor without pulling the disconnect!");
+              return;
+            }
+            if (!consumeBeltOrVanPart("water_bottle")) {
+              addLog("Need a Cold Water Bottle on your carry belt! Walk to van to grab one.", "bad");
+              return;
+            }
+            STATE.minutes += 25;
+            STATE.jobFlags.repaired = true;
+            addLog("Pulled disconnect, poured cold water over compressor dome & waited 25 mins—thermal overload closed!", "good");
+            window.renderRepairMenu();
+          };
+        }
+      });
+    };
+  });
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // 1. Add Free Recovery Rig, Vacuum Pump & Dirty Gas Cylinder
+    window.GAME_DATA.toolsAndParts.recovery_rig = {
+      id: "recovery_rig", name: "Suck-Master Recovery Rig", type: "tool",
+      desc: "Recovers refrigerant safely into tank."
+    };
+    window.GAME_DATA.toolsAndParts.vacuum_pump = {
+      id: "vacuum_pump", name: "Deep-Vac 2-Stage Pump", type: "tool",
+      desc: "Evacuates system <500 microns."
+    };
+    window.GAME_DATA.toolsAndParts.dirty_jug = {
+      id: "dirty_jug", name: "Dirty Recovered Jug (Bad Gas)", type: "part", price: 0,
+      desc: "Contaminated gas—high risk of acid/moisture failure!"
+    };
+    window.STATE.vanStock.recovery_rig = 1;
+    window.STATE.vanStock.vacuum_pump = 1;
+
+    // 2. Helper to inject Sealed-System Buttons into Repair Menu
+    window.injectRefrigControls = function(box, c) {
+      const compFaults = ["grounded_compressor_awaiting", "broken_scroll_valves", "burnout_acid_grounded"];
+      const needRecovery = ["overcharged_r22", "moisture_in_system", ...compFaults];
+
+      // Recover Refrigerant Button
+      const recBtn = document.createElement("button");
+      recBtn.className = "term-btn cyan-btn";
+      recBtn.innerHTML = "<span>RECOVER REFRIGERANT INTO TANK</span><span>[+15M • RECOV]</span>";
+      recBtn.onclick = () => {
+        if (!STATE.jobFlags.gaugesHooked) {
+          addLog("Hook up Manifold Gauges first so you can monitor recovery pressures!", "warn");
+          return;
+        }
+        if (!hasBeltItem("recovery_rig")) {
+          addLog("Need Suck-Master Recovery Rig on carry belt! Walk to van to equip.", "bad");
+          return;
+        }
+        STATE.minutes += 15;
+        STATE.jobFlags.recovered = true;
+        if (c.faultType === "overcharged_r22") {
+          STATE.jobFlags.repaired = true;
+          addLog("Recovered excess R-22 down to 12°F Subcooling—pressures balanced!", "good");
+        } else if (["moisture_in_system", "burnout_acid_grounded"].includes(c.faultType)) {
+          STATE.vanStock.dirty_jug = (STATE.vanStock.dirty_jug || 0) + 1;
+          addLog("Recovered contaminated gas (Dirty Recovered Jug stored in van—DO NOT reuse!).", "warn");
+        } else {
+          addLog("System refrigerant safely recovered into tank.", "good");
+        }
+        window.renderRepairMenu();
+      };
+      box.insertBefore(recBtn, box.children[box.children.length - 2]);
+
+      // Deep Vacuum Pull Button
+      const vacBtn = document.createElement("button");
+      vacBtn.className = "term-btn cyan-btn";
+      vacBtn.innerHTML = "<span>PULL DEEP VACUUM (&lt;500 MICRONS)</span><span>[+20M • VAC]</span>";
+      vacBtn.onclick = () => {
+        if (!hasBeltItem("vacuum_pump")) {
+          addLog("Need Deep-Vac 2-Stage Pump on carry belt! Walk to van to equip.", "bad");
+          return;
+        }
+        if (needRecovery.includes(c.faultType) && !STATE.jobFlags.recovered) {
+          triggerStrikeOrWriteUp("EPA", "You opened/evacuated a pressurized system without recovering refrigerant first!");
+          return;
+        }
+        STATE.minutes += 20;
+        STATE.jobFlags.vacuumPulled = true;
+        addLog("Pulled deep vacuum down to 310 microns & passed decay test!", "good");
+        window.renderRepairMenu();
+      };
+      box.insertBefore(vacBtn, box.children[box.children.length - 2]);
+    };
+  });
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const prevRefrigMenu = window.renderRepairMenu;
+    window.renderRepairMenu = function() {
+      prevRefrigMenu();
+      const c = window.STATE.currentCase;
+      if (!c) return;
+      const box = document.getElementById("action-buttons");
+      const compFaults = ["grounded_compressor_awaiting", "broken_scroll_valves", "burnout_acid_grounded"];
+      const underchargedFaults = ["leaky_schrader_core", "low_charge_evap_flare", "evap_ubend_leak_recharge", "boss_finale_rooftop"];
+
+      window.injectRefrigControls(box, c);
+
+      // Add Reuse Dirty Gas Trap if player has dirty_jug on belt
+      if (hasBeltItem("dirty_jug")) {
+        const dirtyBtn = document.createElement("button");
+        dirtyBtn.className = "term-btn danger-btn";
+        dirtyBtn.innerHTML = "<span>REUSE DIRTY RECOVERED GAS (FREE SHORTCUT)</span><span>[BAD GAS]</span>";
+        dirtyBtn.onclick = () => {
+          consumeBeltOrVanPart("dirty_jug");
+          STATE.jobFlags.usedDirtyGas = true;
+          STATE.jobFlags.repaired = true;
+          addLog("Pumped dirty recovered refrigerant back into the system... risky move!", "warn");
+          window.renderRepairMenu();
+        };
+        box.insertBefore(dirtyBtn, box.children[box.children.length - 2]);
+      }
+
+      // Override standard Refrig & Tag-Out buttons for realism checks
+      Array.from(box.querySelectorAll("button")).forEach(b => {
+        if (b.textContent.includes("REPAIR LEAK / WEIGH IN GAS")) {
+          b.onclick = () => {
+            if (!STATE.jobFlags.gaugesHooked) {
+              addLog("Hook up Manifold Gauges first so you can verify Superheat/Subcooling!", "warn");
+              return;
+            }
+            if (["clogged_filter", "frozen_coil_airflow", "high_static_choked_return"].includes(c.faultType)) {
+              STATE.jobFlags.badChargeDamage = true;
+              STATE.jobFlags.repaired = true;
+              addLog("Overcharged an airflow-starved unit—liquid slugging risk!", "warn");
+              window.renderRepairMenu();
+              return;
+            }
+            if (c.faultType === "overcharged_r22") {
+              STATE.jobFlags.badChargeDamage = true;
+              STATE.jobFlags.repaired = true;
+              addLog("Added MORE refrigerant to an already overcharged R-22 unit—head pressure spiking!", "warn");
+              window.renderRepairMenu();
+              return;
+            }
+            if (c.faultType === "moisture_in_system") {
+              if (!STATE.jobFlags.recovered || !STATE.jobFlags.vacuumPulled) {
+                triggerStrikeOrWriteUp("WU", "Charged virgin refrigerant without recovering wet gas & pulling <500μ vacuum first!");
+                return;
+              }
+              if (!consumeBeltOrVanPart("filter_drier") || !consumeBeltOrVanPart("r410a_jug")) {
+                addLog("Need Oversized Filter Drier AND virgin Rose-410A Jug on belt!", "bad");
+                return;
+              }
+              STATE.jobFlags.repaired = true;
+              addLog("Installed new filter drier, verified <500μ vacuum & weighed in virgin Rose-410A!", "good");
+              window.renderRepairMenu();
+              return;
+            }
+            if (!underchargedFaults.includes(c.faultType)) {
+              STATE.jobFlags.badChargeDamage = true;
+              STATE.jobFlags.repaired = true;
+              addLog("Adjusted charge on a sealed system that wasn't low—SH/SC out of spec!", "warn");
+              window.renderRepairMenu();
+              return;
+            }
+            if (c.requiredPart === "schrader_core" && !consumeBeltOrVanPart("schrader_core")) {
+              addLog("Need Schrader Core + Tool on belt first!", "bad");
+              return;
+            }
+            if (!consumeBeltOrVanPart("r410a_jug")) {
+              addLog("Need virgin Rose-410A Jug on belt!", "bad");
+              return;
+            }
+            STATE.jobFlags.repaired = true;
+            addLog("Leak sealed & virgin Rose-410A weighed in to exact target SH/SC!", "good");
+            window.renderRepairMenu();
+          };
+        }
+
+        if (b.textContent.includes("TAG 'AWAITING PARTS'")) {
+          const origTagClick = b.onclick;
+          b.onclick = () => {
+            if (compFaults.includes(c.faultType) && !STATE.jobFlags.recovered) {
+              addLog("Recover the refrigerant into your tank BEFORE tagging a condemned compressor Awaiting Parts!", "warn");
+              return;
+            }
+            origTagClick();
+          };
+        }
+      });
+    };
+
+    // 3. Enforce Callback / Write-Up Penalties on Ticket Close
+    const prevComplete = window.attemptCompleteWorkOrder;
+    window.attemptCompleteWorkOrder = function() {
+      if (STATE.jobFlags.usedDirtyGas && Math.random() < 0.85) {
+        STATE.jobFlags.usedDirtyGas = false;
+        triggerStrikeOrWriteUp("WU", "CALLBACK WRITE-UP! Your dirty recovered refrigerant plugged the TXV with acid & moisture—compressor damaged!");
+        return;
+      }
+      if (STATE.jobFlags.badChargeDamage) {
+        STATE.jobFlags.badChargeDamage = false;
+        if (Math.random() < 0.65) {
+          triggerStrikeOrWriteUp("WU", "WRITE-UP! Improper over/under-charging slugged the valves and tripped high-head lockout—customer called back!");
+        } else {
+          STATE.minutes += 25;
+          addLog("CALLBACK! Marge sent you back unpaid (+25 mins) to fix your over/under-charged SH/SC!", "bad");
+          updateHUD();
+        }
+        return;
+      }
+      prevComplete();
+    };
+  });
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const SAVE_KEY = "dead_air_txvpro_save_v1";
+
+    // 1. Add App-Ion Vacuum-Rated Core Removal Tool Upgrade
+    window.GAME_DATA.toolsAndParts.core_tool_vac = {
+      id: "core_tool_vac", name: "App-Ion Vacuum Core Tool", type: "tool", upgrade: true, price: 95,
+      desc: "Live core swaps without recovery & cuts vacuum time in half!"
+    };
+
+    // 2. Save / Load Career Helpers (localStorage)
+    window.saveCareerProgress = function() {
+      try {
+        const snapshot = {
+          day: STATE.day, jobsCompleted: STATE.jobsCompleted, cash: STATE.cash,
+          stamina: STATE.stamina, minutes: STATE.minutes, zaps: STATE.zaps,
+          writeUps: STATE.writeUps, helperAvailable: STATE.helperAvailable,
+          helperHangry: STATE.helperHangry, headlampBattery: STATE.headlampBattery,
+          weather: STATE.weather, debuffs: STATE.debuffs, buffs: STATE.buffs,
+          bestiary: STATE.bestiary, ledger: STATE.ledger, belt: STATE.belt,
+          vanStock: STATE.vanStock, hadLunchToday: !!STATE.hadLunchToday
+        };
+        localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot));
+      } catch (e) {}
+    };
+
+    window.clearCareerSave = function() {
+      localStorage.removeItem(SAVE_KEY);
+      location.reload();
+    };
+
+    // Restore saved career on launch if available
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        Object.assign(STATE, saved);
+        addLog(`SAVE RESTORED: Day ${STATE.day} • Job #${STATE.jobsCompleted + 1} ($${STATE.cash})`, "good");
+        enterDispatchPhase();
+      }
+    } catch (e) {}
+
+    // Add [RESET SAVE] button inside Payday Ledger Modal
+    const payHead = document.querySelector("#modal-pay .modal-head");
+    if (payHead) {
+      const rst = document.createElement("button");
+      rst.className = "mini-btn";
+      rst.style.color = "var(--danger)";
+      rst.style.borderColor = "var(--danger)";
+      rst.textContent = "[WIPE SAVE]";
+      rst.onclick = () => window.clearCareerSave();
+      payHead.insertBefore(rst, payHead.lastElementChild);
+    }
+  });
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // 1. Add App-Ion Vacuum Core Tool to Fergie's Supply
+    const prevLunchCore = window.enterLunchAndSupplyPhase;
+    window.enterLunchAndSupplyPhase = function() {
+      prevLunchCore();
+      const box = document.getElementById("action-buttons");
+      const owned = (STATE.vanStock.core_tool_vac || 0) > 0 || hasBeltItem("core_tool_vac");
+      const btn = document.createElement("button");
+      btn.className = "term-btn";
+      btn.disabled = STATE.cash < 95 || owned;
+      btn.innerHTML = "<span>UPGRADE: APP-ION VACUUM CORE TOOL</span><span>[$95]</span>";
+      btn.onclick = () => {
+        STATE.cash -= 95;
+        STATE.vanStock.core_tool_vac = 1;
+        addLog("UNLOCKED: App-Ion Vacuum Core Removal Tool!", "good");
+        window.saveCareerProgress();
+        updateHUD();
+      };
+      box.insertBefore(btn, box.lastElementChild);
+    };
+
+    // 2. Live Core Swap vs. Recovery Check + Pliers Hack Trap
+    const prevRepairCore = window.renderRepairMenu;
+    window.renderRepairMenu = function() {
+      prevRepairCore();
+      const c = STATE.currentCase;
+      if (!c) return;
+      const box = document.getElementById("action-buttons");
+
+      // Speed up vacuum pull if App-Ion Core Tool is on belt
+      Array.from(box.querySelectorAll("button")).forEach(b => {
+        if (b.textContent.includes("PULL DEEP VACUUM") && hasBeltItem("core_tool_vac")) {
+          b.innerHTML = "<span>PULL DEEP VACUUM (CORE TOOL HIGH-FLOW)</span><span>[+10M • VAC]</span>";
+          const origVac = b.onclick;
+          b.onclick = () => {
+            origVac();
+            if (STATE.jobFlags.vacuumPulled) STATE.minutes -= 10;
+            updateHUD();
+          };
+        }
+      });
+
+      if (c.faultType === "leaky_schrader_core") {
+        const swapBtn = document.createElement("button");
+        swapBtn.className = "term-btn cyan-btn";
+        swapBtn.innerHTML = "<span>SWAP SCHRADER CORE (LIVE WITH VAC-TOOL OR POST-RECOV)</span><span>[CORE]</span>";
+        swapBtn.onclick = () => {
+          const hasVacCoreTool = hasBeltItem("core_tool_vac");
+          if (!hasVacCoreTool && !STATE.jobFlags.recovered) {
+            triggerStrikeOrWriteUp("EPA", "Pulled a live Schrader core without a Vacuum Core Tool or recovering first—blew charge to atmosphere!");
+            return;
+          }
+          if (!consumeBeltOrVanPart("schrader_core")) {
+            addLog("Need Schrader Core + Tool on belt!", "bad");
+            return;
+          }
+          STATE.minutes += 5;
+          STATE.jobFlags.coreSwapped = true;
+          addLog(hasVacCoreTool ? "Isolated port & swapped Schrader core live with zero gas loss!" : "Swapped Schrader core on recovered system!", "good");
+          window.renderRepairMenu();
+        };
+        box.insertBefore(swapBtn, box.children[box.children.length - 2]);
+
+        const hackBtn = document.createElement("button");
+        hackBtn.className = "term-btn danger-btn";
+        hackBtn.innerHTML = "<span>CRANK PORT CAP TIGHT WITH PLIERS (SKIP CORE)</span><span>[HACK]</span>";
+        hackBtn.onclick = () => {
+          STATE.jobFlags.usedCapShortcut = true;
+          STATE.jobFlags.coreSwapped = true;
+          addLog("Cranked brass cap onto leaking port instead of swapping core... risky!", "warn");
+          window.renderRepairMenu();
+        };
+        box.insertBefore(hackBtn, box.children[box.children.length - 2]);
+      }
+    };
+
+    // 3. Auto-Save After Every Ticket & Enforce Core-Swap / Cap-Hack Checks
+    const prevCompleteCore = window.attemptCompleteWorkOrder;
+    window.attemptCompleteWorkOrder = function() {
+      const c = STATE.currentCase;
+      if (c && c.faultType === "leaky_schrader_core" && !STATE.jobFlags.coreSwapped) {
+        triggerStrikeOrWriteUp("WU", "CALLBACK! You topped off the refrigerant without replacing the leaking Schrader core!");
+        return;
+      }
+      if (STATE.jobFlags.usedCapShortcut && Math.random() < 0.8) {
+        STATE.jobFlags.usedCapShortcut = false;
+        triggerStrikeOrWriteUp("WU", "CALLBACK WRITE-UP! That brass cap O-ring failed and dumped the refrigerant charge!");
+        return;
+      }
+      prevCompleteCore();
+      window.saveCareerProgress();
+    };
+
+    // Wipe save automatically on Game Over or Victory
+    const prevGO = window.triggerGameOver;
+    window.triggerGameOver = function(reason) {
+      localStorage.removeItem("dead_air_txvpro_save_v1");
+      prevGO(reason);
+    };
+  });
+</script>
+<style>
+  #panel-job .comms-box {
+    flex: 1 1 48% !important;
+    min-height: 140px !important;
+    max-height: none !important;
+    padding: 8px 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  #panel-job .comms-header {
+    font-size: 13px !important;
+    margin-bottom: 4px !important;
+  }
+  #panel-job #dialogue-box {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    font-size: 16px !important;
+    line-height: 1.4 !important;
+    overflow-y: auto !important;
+  }
+</style>
+<!-- PATCH PART 1: ZERO-SCROLL GRID & GLOBAL CYAN HEADLAMP -->
+<style>
+  #global-lamp-btn {
+    background: #041d24 !important;
+    color: var(--cyan) !important;
+    border: 1.5px solid var(--cyan) !important;
+    box-shadow: 0 0 6px rgba(0, 229, 255, 0.35);
+    padding: 2px 7px !important;
+    font-family: inherit;
+    font-size: 10.5px !important;
+    font-weight: bold;
+    cursor: pointer;
+    letter-spacing: 0.4px;
+    border-radius: 2px;
+  }
+  #global-lamp-btn.lamp-active {
+    background: var(--cyan) !important;
+    color: #000 !important;
+    box-shadow: 0 0 10px var(--cyan);
+  }
+  #panel-job .comms-box {
+    flex: 0 1 30% !important;
+    min-height: 78px !important;
+    max-height: 125px !important;
+    padding: 5px 7px !important;
+  }
+  #panel-job .comms-header { font-size: 10.5px !important; margin-bottom: 2px !important; }
+  #panel-job #dialogue-box { font-size: 12px !important; line-height: 1.28 !important; overflow-y: auto !important; }
+  #action-buttons {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 4px !important;
+    align-content: start !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+  #action-buttons .term-btn { padding: 5px 6px !important; font-size: 10px !important; line-height: 1.15 !important; min-height: 30px; }
+  #action-buttons .term-btn.span-full { grid-column: 1 / -1 !important; }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const topRow = document.querySelector(".hud-top-row");
+    if (topRow && !document.getElementById("global-lamp-btn")) {
+      const lampBtn = document.createElement("button");
+      lampBtn.id = "global-lamp-btn";
+      lampBtn.type = "button";
+      lampBtn.textContent = "LAMP: OFF";
+      lampBtn.onclick = () => {
+        if (!hasBeltItem("headlamp")) { addLog("Dumbacell Headlamp is in the van! Walk to van to equip.", "warn"); return; }
+        if (STATE.headlampBattery <= 0) { addLog("Headlamp batteries dead (0%)! Swap fresh AAs at van.", "bad"); return; }
+        STATE.headlampOn = !STATE.headlampOn;
+        addLog(STATE.headlampOn ? `Headlamp ON (${STATE.headlampBattery}% battery).` : "Headlamp OFF.", "info");
+        if (STATE.phase === "JOB_SITE") {
+          const box = document.getElementById("action-buttons");
+          if (box) box.classList.toggle("dark-blind", isDarkBlinded());
+        }
+        updateHUD();
+      };
+      topRow.insertBefore(lampBtn, topRow.lastElementChild);
+    }
+
+    const origUpdateHUD = window.updateHUD;
+    window.updateHUD = function () {
+      origUpdateHUD();
+      const btn = document.getElementById("global-lamp-btn");
+      if (!btn) return;
+      if (!hasBeltItem("headlamp")) { btn.textContent = "LAMP: IN VAN"; btn.classList.remove("lamp-active"); }
+      else if (STATE.headlampBattery <= 0) { STATE.headlampOn = false; btn.textContent = "LAMP: DEAD 0%"; btn.classList.remove("lamp-active"); }
+      else {
+        btn.textContent = STATE.headlampOn ? `LAMP: ON [${STATE.headlampBattery}%]` : `LAMP: OFF [${STATE.headlampBattery}%]`;
+        btn.classList.toggle("lamp-active", !!STATE.headlampOn);
+      }
+    };
+  });
+</script>
+<!-- PATCH 2A: VAN RETURN (+5M) & ZONE DIAGNOSTIC MENUS -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const origRenderBelt = window.renderBeltAndVan;
+    window.renderBeltAndVan = function () {
+      origRenderBelt();
+      const canSwap = ["VAN_PREP", "DRIVEWAY", "AT_VAN"].includes(STATE.phase);
+      const st = document.getElementById("van-location-status");
+      if (st) st.textContent = canSwap ? "ACCESSIBLE" : "WALK TO VAN TO SWAP";
+    };
+
+    window.walkBackToVan = function () {
+      STATE.phase = "AT_VAN";
+      STATE.zone = "VAN";
+      STATE.headlampOn = false;
+      STATE.minutes += 5;
+      document.getElementById("phase-label").textContent = "CURBSIDE VAN // GEAR SWAP";
+      addLog("Walked back to service van (+5 mins). Belt & van unlocked.", "info");
+      setDialogue("VAN #31 // CURBSIDE", STATE.currentCase.customer.toUpperCase(),
+        `Open [VAN & BELT] tab to swap tools/parts (${STATE.belt.length}/${getMaxBeltSlots()} slots). Progress saved.`);
+
+      const btns = [
+        { label: "RETURN INSIDE >>", tag: "[INDOOR]", cls: "amber-btn", onClick: () => enterJobSitePhase("INDOOR", false) },
+        { label: "RETURN OUTSIDE >>", tag: "[OUTDOOR]", cls: "cyan-btn", onClick: () => enterJobSitePhase("OUTDOOR", false) }
+      ];
+      if (STATE.headlampBattery < 100 && (STATE.vanStock.batteries || 0) > 0) {
+        btns.push({ label: "SWAP FRESH AAs INTO LAMP", tag: "[1 PACK]", onClick: () => {
+          STATE.vanStock.batteries--; STATE.headlampBattery = 100;
+          addLog("Headlamp batteries replaced (100%).", "good"); window.walkBackToVan();
+        }});
+      }
+      if ((STATE.vanStock.water_bottle || 0) > 0 && STATE.stamina < 100) {
+        btns.push({ label: "DRINK COLD WATER (+15% STAM)", tag: `[${STATE.vanStock.water_bottle} LEFT]`, cls: "cyan-btn", onClick: () => {
+          STATE.vanStock.water_bottle--; STATE.stamina = Math.min(100, STATE.stamina + 15);
+          addLog("Drank cold water (+15% STAM).", "good"); window.walkBackToVan();
+        }});
+      }
+      setButtons(btns, false);
+      updateHUD();
+    };
+
+    window.renderJobActions = function () {
+      const c = STATE.currentCase;
+      const actions = [];
+      if (c.hazard && !STATE.jobFlags.hazardCleared) {
+        if (c.hazard.type === "wasps_and_dog" && (hasBeltItem("wasp_spray") || hasBeltItem("dog_treats"))) {
+          actions.push({ label: "USE WASP SPRAY / TREATS", tag: "[CLEAR]", cls: "amber-btn", onClick: () => {
+            consumeBeltOrVanPart("wasp_spray"); consumeBeltOrVanPart("dog_treats");
+            STATE.jobFlags.hazardCleared = true; addLog("Cleared wasps & calmed dog!", "good"); enterJobSitePhase(STATE.zone, false);
+          }});
+        }
+        actions.push({ label: "PUSH PAST HAZARD", tag: `[-${c.hazard.stamCost}%]`, cls: "danger-btn", onClick: () => {
+          applyDarkHeadBumpIfNeeded(); STATE.stamina = Math.max(5, STATE.stamina - c.hazard.stamCost);
+          STATE.jobFlags.hazardCleared = true;
+          if (c.hazard.type === "attic_fiberglass") addDebuff("ATTIC ITCH");
+          if (c.hazard.type === "soot_puffback") addDebuff("SOOT FACE");
+          addLog(`Braved hazard (-${c.hazard.stamCost}% stam).`, "warn"); enterJobSitePhase(STATE.zone, false);
+        }});
+      }
+
+      if (STATE.zone === "INDOOR") {
+        actions.push(
+          { label: "1. CHECK T-STAT", tag: "[+5M]", onClick: () => {
+            applyDarkHeadBumpIfNeeded(); STATE.minutes += 5;
+            if (STATE.headlampOn) STATE.headlampBattery = Math.max(0, STATE.headlampBattery - 5);
+            STATE.jobFlags.tstatChecked = true;
+            const txt = c.readings.tstat || "Thermostat calling normally.";
+            recordReading(`T-Stat: ${txt}`); addLog(`T-Stat: ${txt}`, "info");
+            maybeTriggerCustomerDistraction(() => { setDialogue("INDOOR // T-STAT", c.system, txt); renderJobActions(); updateHUD(); });
+          }},
+          { label: "2. FILTER / COIL / DRAIN", tag: "[+10M]", onClick: () => {
+            applyDarkHeadBumpIfNeeded(); STATE.minutes += 10;
+            if (STATE.headlampOn) STATE.headlampBattery = Math.max(0, STATE.headlampBattery - 8);
+            STATE.jobFlags.airflowChecked = true;
+            const dt = c.readings.deltaT !== undefined ? `${c.readings.deltaT}°F` : "N/A";
+            const extra = c.readings.filter || c.readings.coil || c.readings.drain || c.readings.staticPressure || c.readings.indoor || c.readings.sequence || c.readings.co_ppm || "Indoor cabinet & drain clean.";
+            recordReading(`Indoor (${dt}): ${extra}`); addLog(`Indoor (${dt}): ${extra}`, "info");
+            maybeTriggerCustomerDistraction(() => { setDialogue("INDOOR // AIR HANDLER", c.indoorLoc, `Delta-T: ${dt}\n${extra}`); renderJobActions(); updateHUD(); });
+          }},
+          { label: "3. INDOOR METER / 24V", tag: "[METER]", disabled: !hasBeltItem("meter_basic"), onClick: () => {
+            applyDarkHeadBumpIfNeeded(); STATE.minutes += 8;
+            if (STATE.headlampOn) STATE.headlampBattery = Math.max(0, STATE.headlampBattery - 6);
+            STATE.jobFlags.indoorMeterChecked = true;
+            const elec = c.readings.board || c.readings.sequence || c.readings.co_ppm || c.readings.indoor || "Indoor 24V circuit verified.";
+            recordReading(`Indoor Meter: ${elec}`); addLog(`Indoor Meter: ${elec}`, "info");
+            setDialogue("INDOOR // METER", c.indoorLoc, elec); renderJobActions(); updateHUD();
+          }},
+          { label: "GO OUTDOOR >>", tag: "[OUT]", cls: "cyan-btn", onClick: () => enterJobSitePhase("OUTDOOR", false) },
+          { label: "WALK TO VAN", tag: "[+5M]", onClick: () => window.walkBackToVan() },
+          { label: "INDOOR REPAIRS >>", tag: "[FIX]", cls: "amber-btn", onClick: () => renderRepairMenu() }
+        );
+      } else {
+        actions.push(
+          { label: STATE.jobFlags.disconnectPulled ? "1. PLUG DISCONNECT IN" : "1. PULL DISCONNECT", tag: "[LOTO]", cls: STATE.jobFlags.disconnectPulled ? "amber-btn" : "", onClick: () => {
+            STATE.jobFlags.disconnectPulled = !STATE.jobFlags.disconnectPulled;
+            if (!STATE.jobFlags.disconnectPulled) STATE.jobFlags.verifiedDead = false;
+            addLog(STATE.jobFlags.disconnectPulled ? "Pulled disconnect (OFF)." : "Plugged disconnect in (LIVE).", "info"); renderJobActions();
+          }},
+          { label: "2. OUTDOOR METER / CAP", tag: "[METER]", disabled: !hasBeltItem("meter_basic"), onClick: () => {
+            STATE.minutes += 10; STATE.jobFlags.outdoorMeterChecked = true;
+            if (STATE.jobFlags.disconnectPulled) STATE.jobFlags.verifiedDead = true;
+            const elec = c.readings.l1_l2 || c.readings.cap_mf || c.readings.contactor || c.readings.ohms || c.readings.outdoor_24v || c.readings.disconnect || c.readings.amps || "240V L1-L2 & contactor verified.";
+            recordReading(`Outdoor Meter: ${elec}`); addLog(`Outdoor Meter: ${elec}`, "info");
+            maybeTriggerCustomerDistraction(() => { setDialogue("OUTDOOR // METER", "CONDENSER", elec); renderJobActions(); updateHUD(); });
+          }},
+          { label: "3. MANIFOLD GAUGES", tag: "[GAUGE]", disabled: !hasBeltItem("gauges_analog"), onClick: () => {
+            STATE.minutes += 10; STATE.jobFlags.gaugesHooked = true;
+            if (c.readings.coil) recordReading(`Condenser Coil: ${c.readings.coil}`);
+            openGaugeModal(c); renderJobActions(); updateHUD();
+          }},
+          { label: "<< GO INDOOR", tag: "[IN]", cls: "cyan-btn", onClick: () => enterJobSitePhase("INDOOR", false) },
+          { label: "WALK TO VAN", tag: "[+5M]", onClick: () => window.walkBackToVan() },
+          { label: "OUTDOOR REPAIRS >>", tag: "[FIX]", cls: "amber-btn", onClick: () => renderRepairMenu() }
+        );
+      }
+      setButtons(actions, isDarkBlinded());
+    };
+  });
+</script>
+<!-- PATCH 2B: INDOOR PROGRESSIVE REPAIRS -->
+<script>
+  window.getIndoorRepairs = function (c) {
+    const repairs = [];
+    if (STATE.jobFlags.tstatChecked) {
+      repairs.push({ label: "FIX T-STAT / AAs / O-B", tag: "[T-STAT]", onClick: () => {
+        applyDarkHeadBumpIfNeeded();
+        if (c.faultType === "tstat_batteries") {
+          if (!consumeBeltOrVanPart("batteries")) { addLog("Need Dumbacell AA Pack on belt!", "bad"); return; }
+          STATE.jobFlags.repaired = true; addLog("Installed fresh Dumbacell AAs!", "good");
+        } else if (["tstat_wrong_mode", "fan_on_not_auto", "reversing_valve_o_b"].includes(c.faultType)) {
+          STATE.jobFlags.repaired = true; addLog("Thermostat mode/reversing valve corrected!", "good");
+        } else addLog("T-Stat checked, root fault is elsewhere.", "warn");
+        renderRepairMenu();
+      }});
+    }
+    if (STATE.jobFlags.airflowChecked) {
+      repairs.push({ label: "FILTER / THAW / DRAIN", tag: "[AIR]", onClick: () => {
+        applyDarkHeadBumpIfNeeded();
+        if (["float_switch_clog", "clogged_ptrap_drain", "boss_vape_dungeon", "boss_bunker_multi"].includes(c.faultType)) {
+          STATE.jobFlags.drainFixed = true;
+          if (!["boss_vape_dungeon", "boss_bunker_multi"].includes(c.faultType)) STATE.jobFlags.repaired = true;
+          addLog("Cleared condensate drain & reset switch!", "good"); checkMultiStepCompletion(c);
+        } else if (["clogged_filter", "frozen_coil_airflow", "stacked_filter_and_cap"].includes(c.faultType)) {
+          if (!consumeBeltOrVanPart("filter_std")) { addLog("Need MERV-8 Filter on belt!", "bad"); return; }
+          STATE.jobFlags.filterDone = true;
+          if (c.faultType !== "stacked_filter_and_cap") STATE.jobFlags.repaired = true;
+          addLog("Thawed coil & installed fresh MERV-8 filter!", "good"); checkMultiStepCompletion(c);
+        } else if (c.faultType === "high_static_choked_return") {
+          STATE.jobFlags.repaired = true; addLog("Cleared blocked return airflow restriction!", "good");
+        } else addLog("Indoor airflow & drain verified clean.", "info");
+        renderRepairMenu();
+      }});
+    }
+    if (STATE.jobFlags.indoorMeterChecked || STATE.jobFlags.airflowChecked) {
+      repairs.push({ label: "INDOOR FUSE / CAP / ROD", tag: "[24V/HEAT]", onClick: () => {
+        applyDarkHeadBumpIfNeeded();
+        if (c.faultType === "dirty_flame_sensor") { STATE.jobFlags.repaired = true; addLog("Buffed flame sensor rod (3.8 μA DC)!", "good"); }
+        else if (c.faultType === "blower_cap_dead") {
+          if (!STATE.jobFlags.disconnectPulled) { triggerStrikeOrWriteUp("ZAP", "Touched 240V blower cap without pulling disconnect!"); return; }
+          if (!consumeBeltOrVanPart("cap_dual")) { addLog("Missing Dual Capacitor on belt!", "bad"); return; }
+          STATE.jobFlags.repaired = true; addLog("Replaced indoor blower capacitor!", "good");
+        } else if (["blown_fuse_tstat", "shorted_contactor_coil", "rubbed_whip_short", "boss_vape_dungeon", "boss_bunker_multi"].includes(c.faultType)) {
+          if (!consumeBeltOrVanPart("fuse_3a")) { addLog("Missing 3A Blade Fuse on belt!", "bad"); return; }
+          STATE.jobFlags.capDone = true;
+          if (!["boss_vape_dungeon", "boss_bunker_multi"].includes(c.faultType)) STATE.jobFlags.repaired = true;
+          addLog("Installed fresh 3A control board fuse!", "good"); checkMultiStepCompletion(c);
+        } else addLog("Indoor board & sensor checked.", "info");
+        renderRepairMenu();
+      }},
+      { label: "SPLICE INDOOR WIRING", tag: "[WIRE]", onClick: () => {
+        applyDarkHeadBumpIfNeeded();
+        if (consumeBeltOrVanPart("wire_box")) {
+          STATE.jobFlags.wireFixed = true;
+          if (["chewed_tstat_wire", "rubbed_whip_short"].includes(c.faultType)) STATE.jobFlags.repaired = true;
+          addLog("Spliced 24V wires cleanly with wire nuts!", "good"); checkMultiStepCompletion(c);
+        } else if (consumeBeltOrVanPart("elec_tape")) {
+          STATE.jobFlags.wireFixed = true; STATE.jobFlags.usedTapeShortcut = true;
+          if (["chewed_tstat_wire", "rubbed_whip_short"].includes(c.faultType)) STATE.jobFlags.repaired = true;
+          addLog("Wrapped bare wires in elec tape (callback risk)!", "warn"); checkMultiStepCompletion(c);
+        } else addLog("Need Wire Box or Elec Tape on belt!", "bad");
+        renderRepairMenu();
+      }});
+    }
+    if (STATE.jobFlags.indoorMeterChecked) {
+      repairs.push({ label: "RED TAG UNSAFE FURNACE", tag: "[SAFETY]", cls: "danger-btn", onClick: () => {
+        if (c.mustRedTag) { STATE.jobFlags.redTagged = true; STATE.jobFlags.repaired = true; addLog("RED-TAGGED cracked heat exchanger & locked out gas!", "good"); }
+        else addLog("No CO hazard detected—don't falsely red-tag!", "warn");
+        renderRepairMenu();
+      }});
+    }
+    return repairs;
+  };
+</script>
+<!-- PATCH 2C: OUTDOOR PROGRESSIVE REPAIRS & MENU CONTROLLER -->
+<script>
+  window.getOutdoorRepairs = function (c) {
+    const repairs = [];
+    const compFaults = ["grounded_compressor_awaiting", "broken_scroll_valves", "burnout_acid_grounded"];
+    const undercharged = ["leaky_schrader_core", "low_charge_evap_flare", "evap_ubend_leak_recharge", "boss_finale_rooftop"];
+
+    if (STATE.jobFlags.outdoorMeterChecked) {
+      repairs.push({ label: "SWAP CAP / CONTACTOR / FUSE", tag: "[240V]", onClick: () => {
+        const hv = ["bad_dual_cap", "ant_contactor", "shorted_contactor_coil", "hack_jumper_and_cap", "stacked_filter_and_cap", "boss_bunker_multi", "boss_finale_rooftop"];
+        if (hv.includes(c.faultType) && !STATE.jobFlags.disconnectPulled) { triggerStrikeOrWriteUp("ZAP", "Grabbed 240V part without pulling disconnect!"); return; }
+        if (["upside_down_disconnect", "tripped_breaker"].includes(c.faultType)) { STATE.jobFlags.repaired = true; addLog("Flipped disconnect / reset breaker!", "good"); renderRepairMenu(); return; }
+        if (c.requiredPart && ["cap_dual", "contactor", "fuse_3a"].includes(c.requiredPart) && !consumeBeltOrVanPart(c.requiredPart)) { addLog(`Missing ${c.requiredPart} on belt!`, "bad"); return; }
+        if (c.extraPart === "cap_dual" && !consumeBeltOrVanPart("cap_dual")) { addLog("Missing Dual Capacitor on belt!", "bad"); return; }
+        STATE.jobFlags.capDone = true;
+        if (!["stacked_filter_and_cap", "hack_jumper_and_cap", "boss_vape_dungeon", "boss_bunker_multi"].includes(c.faultType)) STATE.jobFlags.repaired = true;
+        addLog("Outdoor electrical component replaced!", "good"); checkMultiStepCompletion(c); renderRepairMenu();
+      }},
+      { label: "SPLICE OUTDOOR WHIP WIRE", tag: "[WIRE]", onClick: () => {
+        if (consumeBeltOrVanPart("wire_box")) {
+          STATE.jobFlags.wireFixed = true;
+          if (["chewed_tstat_wire", "rubbed_whip_short"].includes(c.faultType)) STATE.jobFlags.repaired = true;
+          addLog("Spliced outdoor whip wire with wire nuts!", "good"); checkMultiStepCompletion(c);
+        } else if (consumeBeltOrVanPart("elec_tape")) {
+          STATE.jobFlags.wireFixed = true; STATE.jobFlags.usedTapeShortcut = true;
+          if (["chewed_tstat_wire", "rubbed_whip_short"].includes(c.faultType)) STATE.jobFlags.repaired = true;
+          addLog("Wrapped whip in elec tape (callback risk)!", "warn"); checkMultiStepCompletion(c);
+        } else addLog("Need Wire Box or Elec Tape on belt!", "bad");
+        renderRepairMenu();
+      }});
+      if (c.faultType === "thermal_overload_ol") {
+        repairs.push({ label: "COOL DOME WITH WATER", tag: "[+25M]", cls: "cyan-btn", onClick: () => {
+          if (!STATE.jobFlags.disconnectPulled) { triggerStrikeOrWriteUp("ZAP", "Poured water over live 240V compressor!"); return; }
+          if (!consumeBeltOrVanPart("water_bottle")) { addLog("Need Cold Water Bottle on belt!", "bad"); return; }
+          STATE.minutes += 25; STATE.jobFlags.repaired = true; addLog("Cooled compressor dome & waited 25 mins!", "good"); renderRepairMenu();
+        }});
+      }
+    }
+    if (STATE.jobFlags.gaugesHooked) {
+      repairs.push({ label: "WASH CONDENSER COIL", tag: "[COIL]", onClick: () => {
+        if (c.faultType === "dirty_condenser_coil") { STATE.jobFlags.repaired = true; addLog("Washed outdoor condenser coil clean!", "good"); }
+        else addLog("Condenser coil rinsed.", "info");
+        renderRepairMenu();
+      }},
+      { label: "RECOVER REFRIGERANT", tag: "[+15M]", cls: "cyan-btn", onClick: () => {
+        if (!hasBeltItem("recovery_rig")) { addLog("Need Recovery Rig on belt! Walk to van.", "bad"); return; }
+        STATE.minutes += 15; STATE.jobFlags.recovered = true;
+        if (c.faultType === "overcharged_r22") { STATE.jobFlags.repaired = true; addLog("Recovered excess R-22 to 12°F SC!", "good"); }
+        else if (["moisture_in_system", "burnout_acid_grounded"].includes(c.faultType)) { STATE.vanStock.dirty_jug = (STATE.vanStock.dirty_jug || 0) + 1; addLog("Recovered dirty gas into Dirty Jug!", "warn"); }
+        else addLog("Refrigerant recovered into tank.", "good");
+        renderRepairMenu();
+      }},
+      { label: hasBeltItem("core_tool_vac") ? "DEEP VACUUM (CORE TOOL)" : "PULL DEEP VACUUM (<500μ)", tag: hasBeltItem("core_tool_vac") ? "[+10M]" : "[+20M]", cls: "cyan-btn", onClick: () => {
+        if (!hasBeltItem("vacuum_pump")) { addLog("Need Deep-Vac Pump on belt! Walk to van.", "bad"); return; }
+        if (["overcharged_r22", "moisture_in_system", ...compFaults].includes(c.faultType) && !STATE.jobFlags.recovered) { triggerStrikeOrWriteUp("EPA", "Evacuated pressurized system without recovering first!"); return; }
+        STATE.minutes += hasBeltItem("core_tool_vac") ? 10 : 20; STATE.jobFlags.vacuumPulled = true; addLog("Pulled deep vacuum (<500 microns)!", "good"); renderRepairMenu();
+      }},
+      { label: c.faultType === "moisture_in_system" ? "SWAP DRIER & CHARGE 410A" : "SEAL LEAK & WEIGH IN GAS", tag: "[CHARGE]", onClick: () => {
+        if (["clogged_filter", "frozen_coil_airflow", "high_static_choked_return"].includes(c.faultType)) { STATE.jobFlags.badChargeDamage = true; STATE.jobFlags.repaired = true; addLog("Overcharged airflow-starved unit!", "warn"); renderRepairMenu(); return; }
+        if (c.faultType === "moisture_in_system") {
+          if (!STATE.jobFlags.recovered || !STATE.jobFlags.vacuumPulled) { triggerStrikeOrWriteUp("WU", "Charged without recovery & <500μ vacuum!"); return; }
+          if (!consumeBeltOrVanPart("filter_drier") || !consumeBeltOrVanPart("r410a_jug")) { addLog("Need Filter Drier & Rose-410A Jug on belt!", "bad"); return; }
+          STATE.jobFlags.repaired = true; addLog("Installed filter drier & weighed in Rose-410A!", "good"); renderRepairMenu(); return;
+        }
+        if (!undercharged.includes(c.faultType)) { STATE.jobFlags.badChargeDamage = true; STATE.jobFlags.repaired = true; addLog("Adjusted charge on a sealed system that wasn't low!", "warn"); renderRepairMenu(); return; }
+        if (!consumeBeltOrVanPart("r410a_jug")) { addLog("Need Rose-410A Jug on belt!", "bad"); return; }
+        STATE.jobFlags.repaired = true; addLog("Leak sealed & Rose-410A weighed to target SH/SC!", "good"); renderRepairMenu();
+      }});
+      if (c.faultType === "leaky_schrader_core") {
+        repairs.push({ label: "SWAP SCHRADER CORE", tag: "[CORE]", cls: "cyan-btn", onClick: () => {
+          const vacCore = hasBeltItem("core_tool_vac");
+          if (!vacCore && !STATE.jobFlags.recovered) { triggerStrikeOrWriteUp("EPA", "Pulled live Schrader core without Vacuum Core Tool or recovery!"); return; }
+          if (!consumeBeltOrVanPart("schrader_core")) { addLog("Need Schrader Core + Tool on belt!", "bad"); return; }
+          STATE.minutes += 5; STATE.jobFlags.coreSwapped = true; addLog("Swapped Schrader core cleanly!", "good"); renderRepairMenu();
+        }});
+      }
+    }
+    if (STATE.jobFlags.outdoorMeterChecked || STATE.jobFlags.gaugesHooked) {
+      repairs.push({ label: "TAG 'AWAITING PARTS'", tag: "[ORDER]", cls: "amber-btn", onClick: () => {
+        if (compFaults.includes(c.faultType) && !STATE.jobFlags.recovered) { addLog("Recover refrigerant BEFORE tagging condemned compressor!", "warn"); return; }
+        if (c.awaitingParts) { STATE.jobFlags.awaitingPartsTagged = true; STATE.jobFlags.repaired = true; addLog("Logged part as AWAITING PARTS!", "good"); }
+        else addLog("Repairable on-site—don't falsely tag out!", "warn");
+        renderRepairMenu();
+      }});
+    }
+    return repairs;
+  };
+
+  document.addEventListener("DOMContentLoaded", () => {
+    window.renderRepairMenu = function () {
+      const c = STATE.currentCase;
+      const repairs = STATE.zone === "INDOOR" ? window.getIndoorRepairs(c) : window.getOutdoorRepairs(c);
+      setDialogue(`${STATE.zone} REPAIR MENU`, `${c.customer.toUpperCase()} // ${c.system}`,
+        repairs.length === 0 ? `No ${STATE.zone} repairs unlocked yet! Run ${STATE.zone} diagnostics first.` : `Showing unlocked ${STATE.zone} repairs.`);
+      repairs.push(
+        { label: `<< BACK TO ${STATE.zone} DIAGNOSTICS`, cls: "span-full", onClick: () => renderJobActions() },
+        { label: "COMPLETE WORK ORDER >>", tag: "[FINISH]", cls: "amber-btn span-full", onClick: () => attemptCompleteWorkOrder() }
+      );
+      setButtons(repairs, isDarkBlinded());
+    };
+  });
+</script>
+<!-- PATCH: COMMS HEADER CYAN HEADLAMP BUTTON -->
+<style>
+  #panel-job .comms-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+  }
+  #global-lamp-btn {
+    position: static !important;
+    background: #041d24 !important;
+    color: var(--cyan) !important;
+    border: 1px solid var(--cyan) !important;
+    box-shadow: 0 0 5px rgba(0, 229, 255, 0.3) !important;
+    padding: 1px 6px !important;
+    font-size: 9.5px !important;
+    line-height: 1.15 !important;
+    border-radius: 2px !important;
+    flex-shrink: 0 !important;
+  }
+  #global-lamp-btn.lamp-active {
+    background: var(--cyan) !important;
+    color: #000 !important;
+    box-shadow: 0 0 8px var(--cyan) !important;
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const commsHeader = document.querySelector("#panel-job .comms-header");
+    const lampBtn = document.getElementById("global-lamp-btn");
+    const locTag = document.getElementById("location-tag");
+    if (commsHeader && lampBtn && locTag) {
+      commsHeader.insertBefore(lampBtn, locTag);
+    }
+  });
+</script>
+
+</body>
+</html>
